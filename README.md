@@ -7,3 +7,5 @@ ____________
 - Board
 - Tile
 - Player
+
+## Methods
