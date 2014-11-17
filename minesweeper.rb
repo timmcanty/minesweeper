@@ -1,20 +1,29 @@
 class Game
   require 'yaml'
 
+  def Game.load_game(file_name)
+    board = YAML.load(File.read( file_name) )
+    Game.new( size: board.size, bombs: board.bombs, board: board)
+  end
+
+
   def initialize(options = {})
     defaults = {size: 9,
                 bombs: 10,
-                file_name: nil}
+                board: nil}
+
     options = defaults.merge(options)
     @size = options[:size]
-    if options[:file_name]
-      @board = load(options[:file_name])
+    @bombs = options[:bombs]
+    if options[:board]
+      @board = options[:board]
     else
-      @board = Board.new( options[:size], options[:bombs])
+      @board = Board.new( @size, @bombs)
     end
     @player = Player.new
-    @start_time = Time.now
   end
+
+
 
   def run
 
@@ -32,9 +41,9 @@ class Game
     @board.render
 
     if @board.won?
-      @time_elapsed = Time.now - @start_time
+      @time_elapsed = Time.now - @board.start_time
       puts "Congratulations, you cleared the minefield in #{@time_elapsed.to_i}s!"
-      high_score(@time_elapsed)
+      high_score(@time_elapsed) if (@board.bombs == 10 && @size == 9)
     elsif @board.lost?
       puts "You exploded"
     else
@@ -67,16 +76,16 @@ class Game
 
   def print_scores(high_scores)
     high_scores.each_with_index do |score,index|
-      puts "#{index+1}: #{score[1]} - #{score[0].to_i}s"
+      place = (index+1).to_s.ljust(2)
+      name = score[1][0...15].ljust(15)
+      time = score[0].to_i.to_s.rjust(9)
+
+      puts "#{place}: #{name} | #{time}s"
     end
   end
 
   def over?
     @board.won? || @board.lost?
-  end
-
-  def load(filename)
-    YAML.load(File.read( filename) )
   end
 
   def save
@@ -91,10 +100,13 @@ end
 
 class Board
 
+  attr_reader :bombs, :size, :start_time
   def initialize( size = 9, bombs = 10)
+    @size = size
     @bombs = bombs
     @board = generate_board(size)
     place_bombs(@board)
+    @start_time = Time.now
   end
 
   def process_command(command)
@@ -139,11 +151,22 @@ class Board
   end
 
   def render
-    @board.each do |row|
+    print "# |"
+    @board.size.times {|i| print "#{i+1}|"}
+    puts
+    print "--+"
+    @board.size.times { print '-+'}
+    puts
+    @board.each_with_index do |row, index|
+      print "#{index+1} |"
       row.each do |tile|
         char = char_to_render(tile)
         print char
+        print '|'
       end
+      puts
+      print "--+"
+      @board.size.times { print '-+'}
       puts
     end
 
@@ -153,14 +176,14 @@ class Board
   def char_to_render(tile)
     case tile.state
     when :hidden
-       '*'
+       '◼'
     when :flagged
-      'F'
+      '⚑'
     when :revealed
       if tile.is_bomb
-        'B'
+        '⚛'
       elsif tile.bomb_count == 0
-       '_'
+       ' '
       else
         "#{tile.bomb_count}"
       end
