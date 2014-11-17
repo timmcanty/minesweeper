@@ -1,8 +1,17 @@
 class Game
+  require 'yaml'
 
-  def initialize(size = 9, bombs = 10)
-    @size = size
-    @board = Board.new( size, bombs)
+  def initialize(options = {})
+    defaults = {size: 9,
+                bombs: 10,
+                file_name: nil}
+    options = defaults.merge(options)
+    @size = options[:size]
+    if options[:file_name]
+      @board = load(options[:file_name])
+    else
+      @board = Board.new( options[:size], options[:bombs])
+    end
     @player = Player.new
   end
 
@@ -11,20 +20,41 @@ class Game
     until over?
       @board.render
       command = @player.get_command(@size)   # [command_type, pos]
+      if command == :s
+        save
+        break
+      end
       puts
       @board.process_command(command)
     end
 
+    @board.render
+
     if @board.won?
       puts "Congratulations!"
-    else
+    elsif @board.lost?
       puts "You exploded"
+    else
+      puts "Game saved!"
     end
 
   end
 
   def over?
     @board.won? || @board.lost?
+  end
+
+  def load(filename)
+    YAML.load(File.read( filename) )
+  end
+
+  def save
+    saved_game = @board.to_yaml
+    puts "Enter file name"
+    file_name = gets.chomp
+    f = File.open(file_name, 'w')
+    f.puts saved_game
+    f.close
   end
 end
 
@@ -44,19 +74,19 @@ class Board
     end
   end
 
-  def won?
-    @board.all? do |row|
-      row.all? do |tile|
-        tile.is_bomb ? tile.state == :flagged : tile.state == :revealed
-      end
+  def tiles
+    @board.flatten
+  end
+
+  def won? #can flatten this
+    tiles.all? do |tile|
+      tile.is_bomb ? tile.state == :flagged : tile.state == :revealed
     end
   end
 
-  def lost?
-    @board.any? do |row|
-      row.any? do |tile|
-        tile.is_bomb && tile.state == :revealed
-      end
+  def lost? #can flatten this with method tiles (flattens)
+    tiles.any? do |tile|
+      tile.is_bomb && tile.state == :revealed
     end
   end
 
@@ -112,15 +142,7 @@ class Board
   private
 
   def generate_board(size)
-    board = Array.new(size) { Array.new(size)}
-
-    board.each_index do |row|
-      board.each_index do |col|
-        board[row][col] = Tile.new(self)
-        p board[row][col].class
-      end
-    end
-
+    board = Array.new(size) { Array.new(size) { Tile.new(self)} }
   end
 
   def place_bombs(board)
@@ -204,9 +226,10 @@ end
 
 class Player
 
-  def get_command(size) # [command_type, pos]  (command_type is :reveal or :flag)
-    puts "Enter a command ( r - reveal, f - flag)"
+  def get_command(size) # [command_type, pos]  (command_type is :r or :f)
+    puts "Enter a command ( r - reveal, f - flag, s - save)"
     command_type = command
+    return command_type if command_type == :s
     puts "Enter a position ( 1,1 is the top left corner)"
     given_position = position(size)
 
@@ -216,8 +239,8 @@ class Player
   def command
     input = gets.chomp
 
-    until (input == 'r') || ( input == 'f')
-      puts "Invalid Command! ( r - reveal, f - flag)"
+    until (input == 'r') || ( input == 'f') || (input == 's')
+      puts "Invalid Command! ( r - reveal, f - flag, s - save)"
       input = gets.chomp
     end
 
