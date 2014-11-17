@@ -11,10 +11,44 @@ class Board
 
 
   def reveal_tile(pos)
+    return if self[pos].state == :flagged || self[pos].state == :revealed
     self[pos].reveal
-    # neighbors(pos).each {|posi| reveal_tile(posi)
+
+    if self[pos].bomb_count == 0
+      neighbors(pos).each { |coord| reveal_tile(coord)}
+    end
+
+    nil
   end
 
+  def render
+    @board.each do |row|
+      row.each do |tile|
+        char = char_to_render(tile)
+        print char
+      end
+      puts
+    end
+
+    nil
+  end
+
+  def char_to_render(tile)
+    case tile.state
+    when :hidden
+       '*'
+    when :flagged
+      'F'
+    when :revealed
+      if tile.is_bomb
+        'B'
+      elsif tile.bomb_count == 0
+       '_'
+      else
+        "#{tile.bomb_count}"
+      end
+    end
+  end
   protected
 
 
@@ -42,7 +76,6 @@ class Board
       pos = [row,col]
 
       unless self[pos].is_bomb
-        #p board[row][col].class
         self[pos].make_bomb
         set_neighbor_bomb_counts(pos)
         bombs_left -= 1
@@ -66,9 +99,9 @@ class Board
   def neighbors(pos)
     deltas = [-1,0,1].product([-1,0,1]) - [[0,0]]
 
-    neighbors = deltas.map {|delta| [pos[0] + delta[0], pos[1] + delta[1]]}
+    pot_neighbors = deltas.map {|delta| [pos[0] + delta[0], pos[1] + delta[1]]}
 
-    neighbors = neighbors.reject do |neighbor|
+    neighbors = pot_neighbors.reject do |neighbor|
       neighbor.any? {|coord| !coord.between?(0, @board.size-1)}
     end
   end
@@ -77,7 +110,7 @@ end
 
 class Tile
 
-  attr_reader :is_bomb,  :bomb_count
+  attr_reader :is_bomb,  :bomb_count, :state
 
   def initialize(board, initial_state = :hidden)
     @board = board
