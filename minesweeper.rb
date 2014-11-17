@@ -1,4 +1,31 @@
 class Game
+
+  def initialize(size = 9, bombs = 10)
+    @size = size
+    @board = Board.new( size, bombs)
+    @player = Player.new
+  end
+
+  def run
+
+    until over?
+      @board.render
+      command = @player.get_command(@size)   # [command_type, pos]
+      puts
+      @board.process_command(command)
+    end
+
+    if @board.won?
+      puts "Congratulations!"
+    else
+      puts "You exploded"
+    end
+
+  end
+
+  def over?
+    @board.won? || @board.lost?
+  end
 end
 
 class Board
@@ -7,6 +34,30 @@ class Board
     @bombs = bombs
     @board = generate_board(size)
     place_bombs(@board)
+  end
+
+  def process_command(command)
+    if command[0] == :f
+      toggle_flag(command[1])
+    else
+      reveal_tile(command[1])
+    end
+  end
+
+  def won?
+    @board.all? do |row|
+      row.all? do |tile|
+        tile.is_bomb ? tile.state == :flagged : tile.state == :revealed
+      end
+    end
+  end
+
+  def lost?
+    @board.any? do |row|
+      row.any? do |tile|
+        tile.is_bomb && tile.state == :revealed
+      end
+    end
   end
 
 
@@ -18,6 +69,11 @@ class Board
       neighbors(pos).each { |coord| reveal_tile(coord)}
     end
 
+    nil
+  end
+
+  def toggle_flag(pos)
+    self[pos].flag
     nil
   end
 
@@ -132,8 +188,51 @@ class Tile
     @state = :revealed
   end
 
+  def flag
+    case @state
+    when :flagged
+      @state = :hidden
+    when :hidden
+      @state = :flagged
+    end
+
+    nil
+  end
+
 
 end
 
 class Player
+
+  def get_command(size) # [command_type, pos]  (command_type is :reveal or :flag)
+    puts "Enter a command ( r - reveal, f - flag)"
+    command_type = command
+    puts "Enter a position ( 1,1 is the top left corner)"
+    given_position = position(size)
+
+    [command_type, given_position]
+  end
+
+  def command
+    input = gets.chomp
+
+    until (input == 'r') || ( input == 'f')
+      puts "Invalid Command! ( r - reveal, f - flag)"
+      input = gets.chomp
+    end
+
+    input.to_sym
+  end
+
+  def position(size)
+    input = gets.chomp.split(",")
+
+    until input.all? { |coord| coord.to_i.between?(1, size)}
+      puts "Invalid position! (1 - #{size})"
+      input = gets.chomp.split(',')
+    end
+
+    input.map {|el| el.to_i-1}
+  end
+
 end
