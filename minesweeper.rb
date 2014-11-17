@@ -23,8 +23,6 @@ class Game
     @player = Player.new
   end
 
-
-
   def run
 
     until over?
@@ -176,7 +174,7 @@ class Board
   def char_to_render(tile)
     case tile.state
     when :hidden
-       '◼'
+       '█'
     when :flagged
       '⚑'
     when :revealed
