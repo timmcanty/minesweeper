@@ -9,6 +9,12 @@ class Board
     place_bombs(@board)
   end
 
+
+  def reveal_tile(pos)
+    self[pos].reveal
+    # neighbors(pos).each {|posi| reveal_tile(posi)
+  end
+
   protected
 
 
@@ -33,11 +39,12 @@ class Board
     until bombs_left == 0
       row = rand(board.count)
       col = rand(board.count)
+      pos = [row,col]
 
-      unless board[row][col].is_bomb
+      unless self[pos].is_bomb
         #p board[row][col].class
-        board[row][col].make_bomb
-        set_neighbor_bomb_counts( row, col)
+        self[pos].make_bomb
+        set_neighbor_bomb_counts(pos)
         bombs_left -= 1
       end
     end
@@ -45,16 +52,9 @@ class Board
     board
   end
 
-  def set_neighbor_bomb_counts (row, col)
-    deltas = [-1,0,1].product([-1,0,1]) - [[0,0]]
+  def set_neighbor_bomb_counts (pos)
 
-    neighbors = deltas.map {|delta| [row + delta[0], col + delta[1]]}
-
-    neighbors = neighbors.reject do |neighbor|
-      neighbor.any? {|coord| !coord.between?(0, @board.size-1)}
-    end
-
-    neighbors.each {|neighbor| self[neighbor].increase_bomb_count }
+    neighbors(pos).each {|neighbor| self[neighbor].increase_bomb_count }
 
     nil
   end
@@ -63,6 +63,15 @@ class Board
     @board[pos[0]][pos[1]]
   end
 
+  def neighbors(pos)
+    deltas = [-1,0,1].product([-1,0,1]) - [[0,0]]
+
+    neighbors = deltas.map {|delta| [pos[0] + delta[0], pos[1] + delta[1]]}
+
+    neighbors = neighbors.reject do |neighbor|
+      neighbor.any? {|coord| !coord.between?(0, @board.size-1)}
+    end
+  end
 end
 
 
@@ -84,6 +93,10 @@ class Tile
 
   def increase_bomb_count
     @bomb_count += 1
+  end
+
+  def reveal
+    @state = :revealed
   end
 
 
