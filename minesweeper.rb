@@ -13,6 +13,7 @@ class Game
       @board = Board.new( options[:size], options[:bombs])
     end
     @player = Player.new
+    @start_time = Time.now
   end
 
   def run
@@ -31,13 +32,43 @@ class Game
     @board.render
 
     if @board.won?
-      puts "Congratulations!"
+      @time_elapsed = Time.now - @start_time
+      puts "Congratulations, you cleared the minefield in #{@time_elapsed.to_i}s!"
+      high_score(@time_elapsed)
     elsif @board.lost?
       puts "You exploded"
     else
-      puts "Game saved!"
+      puts "Game saved! "
     end
 
+  end
+
+  def high_score(time_elapsed)
+    if File.exists?('high_scores.txt')
+      current_high_scores =  YAML.load(File.read('high_scores.txt')).sort
+    else
+      current_high_scores = []
+    end
+
+    if current_high_scores.size == 10 && time_elapsed > current_high_scores.last[0]
+      puts "Not Good enough"
+    else
+      puts "New high score! Input your name."
+      name = gets.chomp
+      current_high_scores << [time_elapsed, name]
+      current_high_scores = current_high_scores.sort.take(10)
+    end
+
+    print_scores(current_high_scores)
+    f = File.open('high_scores.txt', 'w')
+    f.puts current_high_scores.to_yaml
+    f.close
+  end
+
+  def print_scores(high_scores)
+    high_scores.each_with_index do |score,index|
+      puts "#{index+1}: #{score[1]} - #{score[0].to_i}s"
+    end
   end
 
   def over?
