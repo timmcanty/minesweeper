@@ -1,5 +1,7 @@
 class Game
   require 'yaml'
+  require 'colorize'
+
 
   def Game.load_game(file_name)
     board = YAML.load(File.read( file_name) )
@@ -174,19 +176,42 @@ class Board
   def char_to_render(tile)
     case tile.state
     when :hidden
-       '█'
+       ' '.on_black
     when :flagged
-      '⚑'
+      '⚑'.colorize(:red)
     when :revealed
       if tile.is_bomb
         '⚛'
       elsif tile.bomb_count == 0
        ' '
       else
-        "#{tile.bomb_count}"
+        "#{color_case(tile.bomb_count)}"
       end
     end
   end
+
+  def color_case(number)
+    case number
+    when 1
+      number.to_s.colorize(:light_blue)
+    when 2
+      number.to_s.colorize(:green)
+    when 3
+      number.to_s.colorize(:light_red)
+    when 4
+      number.to_s.colorize(:blue)
+    when 5
+      number.to_s.colorize(:light_black)
+    when 6
+      number.to_s.colorize(:light_cyan)
+    when 7
+      number.to_s.colorize(:magenta)
+    when 8
+      number.to_s.colorize(:cyan)
+    end
+  end
+
+
   protected
 
 
